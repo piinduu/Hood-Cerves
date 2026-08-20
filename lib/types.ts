@@ -10,4 +10,6 @@ export type PersonWithTotal = {
   totalSidraLiters: number;
   monthSidraLiters: number;
   lastSidraId: string | null;
+  totalPoints: number;
+  monthPoints: number;
 };
