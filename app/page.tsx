@@ -6,10 +6,12 @@ import { AnimateButton } from "@/components/AnimateButton";
 import { CopaCard } from "@/components/CopaCard";
 import { NotificationButton } from "@/components/NotificationButton";
 import { PersonCard } from "@/components/PersonCard";
+import { PointsBoard } from "@/components/PointsBoard";
 import { Podium, type PodiumEntry } from "@/components/Podium";
 import { SidraCard } from "@/components/SidraCard";
 import { TotalCounter } from "@/components/TotalCounter";
-import { madridWallClockToUtc } from "@/lib/madridTime";
+import { getActiveEvent, type WeeklyEvent } from "@/lib/events";
+import { formatMadridTime, madridWallClockToUtc } from "@/lib/madridTime";
 import type { PersonWithTotal } from "@/lib/types";
 
 const POLL_INTERVAL_MS = 5000;
@@ -37,8 +39,9 @@ function computePodium(entries: { name: string; liters: number }[]): PodiumEntry
 export default function Home() {
   const [people, setPeople] = useState<PersonWithTotal[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState<"cerveza" | "copas" | "sidra">("cerveza");
+  const [tab, setTab] = useState<"cerveza" | "copas" | "sidra" | "puntos">("cerveza");
   const [sidraUnlocked, setSidraUnlocked] = useState(false);
+  const [activeEvent, setActiveEvent] = useState<WeeklyEvent | null>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/people", { cache: "no-store" });
@@ -63,6 +66,13 @@ export default function Home() {
     };
     check();
     const interval = setInterval(check, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const check = () => setActiveEvent(getActiveEvent(new Date()));
+    check();
+    const interval = setInterval(check, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -189,6 +199,22 @@ export default function Home() {
   const sidraPodium = computePodium(
     people.map((p) => ({ name: p.name, liters: p.monthSidraLiters }))
   );
+  const pointsPodium = computePodium(
+    people.map((p) => ({ name: p.name, liters: p.monthPoints }))
+  );
+
+  const totalPointsGroup = people.reduce((sum, p) => sum + p.totalPoints, 0);
+  const monthPointsGroup = people.reduce((sum, p) => sum + p.monthPoints, 0);
+
+  const pointsRanked = [...people]
+    .sort((a, b) => b.monthPoints - a.monthPoints)
+    .map((person) => ({
+      person,
+      rank: rankOf(
+        person.monthPoints,
+        people.map((p) => p.monthPoints)
+      ),
+    }));
 
   return (
     <main>
@@ -223,6 +249,12 @@ export default function Home() {
           onClick={() => setTab("sidra")}
         >
           Sidras {!sidraUnlocked && "🔒"}
+        </button>
+        <button
+          className={`tab-btn ${tab === "puntos" ? "active" : ""}`}
+          onClick={() => setTab("puntos")}
+        >
+          🏆 Puntos
         </button>
       </div>
 
@@ -358,6 +390,44 @@ export default function Home() {
               />
             ))}
           </div>
+        </>
+      )}
+
+      {tab === "puntos" && (
+        <>
+          <p className="points-explainer">
+            Puntuación aparte de los litros reales de cerveza: cuenta lo mismo
+            salvo cuando hay un evento temático activo, que da puntos extra.
+            No afecta al total de litros.
+          </p>
+
+          {activeEvent && (
+            <div className="event-banner">
+              <span className="event-emoji">🔥</span>
+              <div>
+                <p className="event-title">{activeEvent.label}</p>
+                <p className="event-detail">
+                  Cervezas x{activeEvent.multiplier} hasta las{" "}
+                  {formatMadridTime(activeEvent.end)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <TotalCounter totalLiters={totalPointsGroup} label="Puntuación total" unit="pts" />
+          <TotalCounter
+            totalLiters={monthPointsGroup}
+            label="Puntuación este mes"
+            unit="pts"
+          />
+
+          <Podium entries={pointsPodium} unit=" pts" />
+
+          {loaded && people.length === 0 && (
+            <p className="empty-state">Nadie apuntado todavía. ¡Añade a alguien!</p>
+          )}
+
+          <PointsBoard entries={pointsRanked} />
         </>
       )}
     </main>

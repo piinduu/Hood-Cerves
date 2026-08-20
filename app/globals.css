@@ -393,6 +393,87 @@ header.app-header {
   margin: 0 0 8px;
 }
 
+.points-explainer {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: #999;
+  margin: 0 0 16px;
+}
+
+.event-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, var(--pink), var(--orange));
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin: 0 0 20px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+}
+
+.event-emoji {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.event-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: #fff;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.event-detail {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #fff;
+  margin: 2px 0 0;
+}
+
+.points-board {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.points-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 16, 17, 0.85);
+  border: 2px solid #2a2c2e;
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.points-rank {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--yellow);
+  min-width: 34px;
+}
+
+.points-name {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.05rem;
+  flex: 1;
+}
+
+.points-month {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--yellow);
+}
+
+.points-total {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: #999;
+}
+
 .people-grid {
   display: grid;
   grid-template-columns: 1fr;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMadridDateParts } from "@/lib/madridTime";
+import { getPointsMultiplier } from "@/lib/events";
 import type { PersonWithTotal } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,13 @@ export async function GET() {
       .filter((s) => isSameMonth(s.createdAt))
       .reduce((sum, s) => sum + s.liters, 0),
     lastSidraId: p.sidras[0]?.id ?? null,
+    totalPoints: p.drinks.reduce(
+      (sum, d) => sum + d.liters * getPointsMultiplier(d.createdAt),
+      0
+    ),
+    monthPoints: p.drinks
+      .filter((d) => isSameMonth(d.createdAt))
+      .reduce((sum, d) => sum + d.liters * getPointsMultiplier(d.createdAt), 0),
   }));
 
   return NextResponse.json(result);
