@@ -3,6 +3,12 @@
 import { useState } from "react";
 import type { PersonWithTotal } from "@/lib/types";
 
+export type StealOutcome = {
+  success: boolean;
+  toPersonId: string;
+  points: number;
+};
+
 export function StealModal({
   fromPersonId,
   fromPersonName,
@@ -14,7 +20,7 @@ export function StealModal({
   fromPersonName: string;
   points: number;
   people: PersonWithTotal[];
-  onDone: () => void;
+  onDone: (outcome: StealOutcome | null) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const candidates = people.filter((p) => p.id !== fromPersonId);
@@ -23,13 +29,19 @@ export function StealModal({
     if (busy) return;
     setBusy(true);
     try {
-      await fetch("/api/steal", {
+      const res = await fetch("/api/steal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fromPersonId, toPersonId, points }),
       });
+      const data = await res.json().catch(() => null);
+      onDone(
+        res.ok && data ? { success: Boolean(data.success), toPersonId, points } : null
+      );
+    } catch {
+      onDone(null);
     } finally {
-      onDone();
+      setBusy(false);
     }
   }
 
@@ -52,7 +64,11 @@ export function StealModal({
             </button>
           ))}
         </div>
-        <button className="modal-skip-btn" disabled={busy} onClick={onDone}>
+        <button
+          className="modal-skip-btn"
+          disabled={busy}
+          onClick={() => onDone(null)}
+        >
           No robar esta vez
         </button>
       </div>

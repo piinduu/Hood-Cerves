@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcastPush } from "@/lib/push";
+import { rollStealSuccess } from "@/lib/steal";
 
 export const dynamic = "force-dynamic";
 
@@ -38,14 +39,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Persona no encontrada" }, { status: 404 });
   }
 
+  const roundedPoints = Math.round(points);
+  const success = rollStealSuccess();
+
   await prisma.pointSteal.create({
-    data: { fromPersonId, toPersonId, points: Math.round(points) },
+    data: { fromPersonId, toPersonId, points: roundedPoints, success },
   });
 
   await broadcastPush({
     title: "Hood Cerves",
-    body: `¡${fromPerson.name} le acaba de robar ${Math.round(points)} puntos a ${toPerson.name} sin que se entere!`,
+    body: success
+      ? `¡${fromPerson.name} le acaba de robar ${roundedPoints} puntos a ${toPerson.name} sin que se entere!`
+      : `¡${fromPerson.name} ha intentado robarle a ${toPerson.name}, pero el plan le ha salido mal y pierde ${roundedPoints} puntos!`,
   }).catch(() => null);
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, success });
 }

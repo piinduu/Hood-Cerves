@@ -9,7 +9,7 @@ import { PersonCard } from "@/components/PersonCard";
 import { PointsBoard } from "@/components/PointsBoard";
 import { Podium, type PodiumEntry } from "@/components/Podium";
 import { SidraCard } from "@/components/SidraCard";
-import { StealModal } from "@/components/StealModal";
+import { StealModal, type StealOutcome } from "@/components/StealModal";
 import { TotalCounter } from "@/components/TotalCounter";
 import { getActiveEvent, type WeeklyEvent } from "@/lib/events";
 import { formatMadridTime, madridWallClockToUtc } from "@/lib/madridTime";
@@ -50,6 +50,12 @@ export default function Home() {
   } | null>(null);
   const [stealActive, setStealActive] = useState(false);
   const [stealEndsAt, setStealEndsAt] = useState<Date | null>(null);
+  const [clockTick, setClockTick] = useState(() => Date.now());
+  const [stealResult, setStealResult] = useState<{
+    success: boolean;
+    points: number;
+    targetName: string;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/people", { cache: "no-store" });
@@ -76,6 +82,20 @@ export default function Home() {
       fromPersonName: person?.name ?? "Alguien",
       points,
     });
+  }
+
+  async function handleStealDone(outcome: StealOutcome | null) {
+    setStealPrompt(null);
+    const freshPeople = await refresh();
+    if (!outcome) return;
+
+    const target = (freshPeople ?? people).find((p) => p.id === outcome.toPersonId);
+    setStealResult({
+      success: outcome.success,
+      points: outcome.points,
+      targetName: target?.name ?? "alguien",
+    });
+    setTimeout(() => setStealResult(null), 4000);
   }
 
   useEffect(() => {
@@ -115,6 +135,12 @@ export default function Home() {
     const interval = setInterval(check, 8000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!stealActive) return;
+    const interval = setInterval(() => setClockTick(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [stealActive]);
 
   async function handleAdd(name: string) {
     await fetch("/api/people", {
@@ -256,9 +282,12 @@ export default function Home() {
       ),
     }));
 
-  const stealMinutesLeft = stealEndsAt
-    ? Math.max(1, Math.ceil((stealEndsAt.getTime() - Date.now()) / 60000))
+  const stealSecondsLeft = stealEndsAt
+    ? Math.max(0, Math.round((stealEndsAt.getTime() - clockTick) / 1000))
     : 0;
+  const stealTimeLeft = `${Math.floor(stealSecondsLeft / 60)
+    .toString()
+    .padStart(2, "0")}:${(stealSecondsLeft % 60).toString().padStart(2, "0")}`;
 
   return (
     <main className={stealActive ? "steal-mode" : ""}>
@@ -309,7 +338,29 @@ export default function Home() {
           <div>
             <p className="steal-banner-title">¡Hora de robos activa!</p>
             <p className="steal-banner-detail">
-              Quedan {stealMinutesLeft} min — cuidado con tus puntos.
+              Quedan {stealTimeLeft} — cuidado con tus puntos.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {stealResult && (
+        <div
+          className={`steal-result-banner ${
+            stealResult.success ? "steal-result-success" : "steal-result-fail"
+          }`}
+        >
+          <span className="steal-banner-emoji">
+            {stealResult.success ? "🎉" : "💀"}
+          </span>
+          <div>
+            <p className="steal-banner-title">
+              {stealResult.success ? "¡Robo conseguido!" : "¡El robo salió mal!"}
+            </p>
+            <p className="steal-banner-detail">
+              {stealResult.success
+                ? `Le quitas ${stealResult.points} pts a ${stealResult.targetName}.`
+                : `Pierdes ${stealResult.points} pts por intentarlo.`}
             </p>
           </div>
         </div>
@@ -489,10 +540,7 @@ export default function Home() {
           fromPersonName={stealPrompt.fromPersonName}
           points={stealPrompt.points}
           people={people}
-          onDone={() => {
-            setStealPrompt(null);
-            refresh();
-          }}
+          onDone={handleStealDone}
         />
       )}
     </main>

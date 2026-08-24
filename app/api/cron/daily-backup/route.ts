@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMadridDateParts, madridWallClockToUtc } from "@/lib/madridTime";
+import { pickWeightedStealHour, stealEventDayOffset } from "@/lib/stealSchedule";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +9,9 @@ const KEEP_DAYS = 30;
 
 // Probabilidad de que cualquier día dado tenga "hora de robos", y las
 // duraciones posibles (en minutos) entre las que se elige al azar si toca.
+// Máximo 30 min: son momentos puntuales del día, no una franja larga.
 const STEAL_EVENT_CHANCE = 0.35;
-const STEAL_DURATIONS_MIN = [20, 60, 120, 240];
+const STEAL_DURATIONS_MIN = [10, 15, 20, 30];
 
 async function maybeScheduleStealEvent() {
   if (Math.random() >= STEAL_EVENT_CHANCE) {
@@ -17,7 +19,9 @@ async function maybeScheduleStealEvent() {
   }
 
   const now = getMadridDateParts(new Date());
-  const startHour = 12 + Math.floor(Math.random() * 11); // entre las 12:00 y las 22:00
+  // Puede caer a cualquier hora del día, pero con más peso entre las 17:00
+  // y las 02:00 (la franja de fiesta típica) — ver lib/stealSchedule.ts.
+  const startHour = pickWeightedStealHour();
   const startMinute = Math.floor(Math.random() * 60);
   const durationMin =
     STEAL_DURATIONS_MIN[Math.floor(Math.random() * STEAL_DURATIONS_MIN.length)];
@@ -25,7 +29,7 @@ async function maybeScheduleStealEvent() {
   const start = madridWallClockToUtc(
     now.year,
     now.month + 1,
-    now.day,
+    now.day + stealEventDayOffset(startHour),
     startHour,
     startMinute,
     0
@@ -34,6 +38,9 @@ async function maybeScheduleStealEvent() {
 
   await prisma.stealEvent.create({ data: { start, end } });
 
+  // Sin aviso previo a propósito: nadie debe saber que hoy toca ni a qué
+  // hora hasta que la hora de robos empieza de verdad (ver
+  // lib/stealAnnounce.ts, que dispara el push justo en ese momento).
   return { scheduled: true, start, end, durationMin };
 }
 

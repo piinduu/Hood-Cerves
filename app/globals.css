@@ -547,6 +547,37 @@ header.app-header {
   text-transform: uppercase;
 }
 
+.steal-result-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin: 0 0 16px;
+  animation: steal-result-in 0.25s ease-out;
+}
+
+.steal-result-success {
+  background: linear-gradient(135deg, #1e9e4a, var(--yellow));
+  box-shadow: 0 8px 20px rgba(30, 158, 74, 0.35);
+}
+
+.steal-result-fail {
+  background: linear-gradient(135deg, #4a1414, #c81e1e);
+  box-shadow: 0 8px 20px rgba(200, 20, 20, 0.35);
+}
+
+@keyframes steal-result-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .steal-banner-detail {
   font-family: var(--font-body);
   font-weight: 600;
