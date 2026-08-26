@@ -28,7 +28,7 @@ async function announceWeekendIfDue() {
 
   await broadcastPush({
     title: "Hood Cerves",
-    body: "🍏🍷 ¡Ya es viernes! Sidras desbloqueadas y los vinos cuentan x2 en puntos todo el finde.",
+    body: "🍷 ¡Por los que no estáis!! Este finde, los que no hayáis ido al viaje tenéis puntos dobles en vino.",
   }).catch(() => null);
 }
 

@@ -151,6 +151,18 @@ export function PersonCard({
                   {size.label} ({size.liters}L)
                 </button>
               ))}
+              {vinoActive &&
+                VINO_QUICK_SIZES.map((size) => (
+                  <button
+                    key={size.label}
+                    className="vino-btn"
+                    disabled={busy}
+                    title="Solo suma puntos x2, no cuenta como cerveza"
+                    onClick={() => addVino(size.liters, size.label)}
+                  >
+                    🍷 {size.label} ({size.liters}L)
+                  </button>
+                ))}
             </div>
 
             <div className="custom-amount">
@@ -166,31 +178,6 @@ export function PersonCard({
                 + L
               </button>
             </div>
-
-            {vinoActive && (
-              <div className="vino-row">
-                <span className="vino-label">🍷 Boost del finde · solo puntos x2</span>
-                <div className="quick-buttons">
-                  {VINO_QUICK_SIZES.map((size) => (
-                    <button
-                      key={size.label}
-                      className="vino-btn"
-                      disabled={busy}
-                      onClick={() => addVino(size.liters, size.label)}
-                    >
-                      {size.label} ({size.liters}L)
-                    </button>
-                  ))}
-                </div>
-                <button
-                  className="link-btn undo vino-undo"
-                  disabled={busy || !person.lastVinoId}
-                  onClick={handleVinoUndo}
-                >
-                  ↩ Deshacer último vino
-                </button>
-              </div>
-            )}
 
             <div className="card-actions">
               <button
@@ -213,6 +200,15 @@ export function PersonCard({
                 </svg>
                 Deshacer última
               </button>
+              {vinoActive && (
+                <button
+                  className="link-btn undo vino-undo"
+                  disabled={busy || !person.lastVinoId}
+                  onClick={handleVinoUndo}
+                >
+                  ↩ Deshacer vino
+                </button>
+              )}
             </div>
           </div>
         </>
