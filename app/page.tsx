@@ -14,7 +14,12 @@ import { StealModal } from "@/components/StealModal";
 import { TotalCounter } from "@/components/TotalCounter";
 import { getActiveEvent, type WeeklyEvent } from "@/lib/events";
 import { formatMadridTime, madridWallClockToUtc } from "@/lib/madridTime";
+import { crossedMilestone, pickMilestoneMessage } from "@/lib/milestones";
+import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 import type { PersonWithTotal } from "@/lib/types";
+
+const BEER_MILESTONE_STEP_L = 1;
+const CUBATA_MILESTONE_STEP_L = 1.5;
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -51,6 +56,24 @@ export default function Home() {
   } | null>(null);
   const [stealActive, setStealActive] = useState(false);
   const [stealEndsAt, setStealEndsAt] = useState<Date | null>(null);
+  const [milestoneQueue, setMilestoneQueue] = useState<
+    { id: string; message: string }[]
+  >([]);
+
+  function queueMilestone(
+    type: "beer" | "cubata",
+    before: number,
+    after: number,
+    step: number
+  ) {
+    const milestone = crossedMilestone(before, after, step);
+    if (milestone === null) return;
+    const message = pickMilestoneMessage(type, milestone);
+    setMilestoneQueue((q) => [
+      ...q,
+      { id: `${Date.now()}-${Math.random()}`, message },
+    ]);
+  }
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/people", { cache: "no-store" });
@@ -127,12 +150,16 @@ export default function Home() {
   }
 
   async function handleDrink(personId: string, liters: number, label?: string) {
+    const before = people.find((p) => p.id === personId)?.monthLiters ?? 0;
     const res = await fetch(`/api/people/${personId}/drink`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ liters, label }),
     });
     const freshPeople = await refresh();
+    const after =
+      (freshPeople ?? people).find((p) => p.id === personId)?.monthLiters ?? before;
+    queueMilestone("beer", before, after, BEER_MILESTONE_STEP_L);
     await maybeOfferSteal(personId, res, freshPeople ?? people);
   }
 
@@ -142,12 +169,17 @@ export default function Home() {
   }
 
   async function handleCubataAdd(personId: string, liters: number, label?: string) {
+    const before = people.find((p) => p.id === personId)?.monthCubataLiters ?? 0;
     const res = await fetch(`/api/people/${personId}/cubata`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ liters, label }),
     });
     const freshPeople = await refresh();
+    const after =
+      (freshPeople ?? people).find((p) => p.id === personId)?.monthCubataLiters ??
+      before;
+    queueMilestone("cubata", before, after, CUBATA_MILESTONE_STEP_L);
     await maybeOfferSteal(personId, res, freshPeople ?? people);
   }
 
@@ -264,6 +296,13 @@ export default function Home() {
   return (
     <main className={stealActive ? "steal-mode" : ""}>
       {stealActive && <div className="steal-vignette" />}
+      {milestoneQueue[0] && (
+        <MilestoneCelebration
+          key={milestoneQueue[0].id}
+          message={milestoneQueue[0].message}
+          onDone={() => setMilestoneQueue((q) => q.slice(1))}
+        />
+      )}
       <header className="app-header">
         <div className="logo-circle">
           {/* eslint-disable-next-line @next/next/no-img-element */}
