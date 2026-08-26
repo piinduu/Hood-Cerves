@@ -9,6 +9,7 @@ import { PersonCard } from "@/components/PersonCard";
 import { PointsBoard } from "@/components/PointsBoard";
 import { Podium, type PodiumEntry } from "@/components/Podium";
 import { SidraCard } from "@/components/SidraCard";
+import { SidraCountdown } from "@/components/SidraCountdown";
 import { StealModal } from "@/components/StealModal";
 import { TotalCounter } from "@/components/TotalCounter";
 import { getActiveEvent, type WeeklyEvent } from "@/lib/events";
@@ -92,7 +93,7 @@ export default function Home() {
       );
     };
     check();
-    const interval = setInterval(check, 60000);
+    const interval = setInterval(check, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -407,6 +408,7 @@ export default function Home() {
           <span className="locked-emoji">🔒🍏</span>
           <p className="locked-title">Sección bloqueada</p>
           <p>Disponible del 28 al 30 de agosto. ¡Vuelve por aquí esos días!</p>
+          <SidraCountdown target={SIDRA_UNLOCK_START} />
         </div>
       )}
 

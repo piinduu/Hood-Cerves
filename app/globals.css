@@ -591,6 +591,80 @@ header.app-header {
   margin: 0 0 8px;
 }
 
+.countdown-box {
+  position: relative;
+  overflow: hidden;
+  margin: 20px auto 0;
+  max-width: 320px;
+  background: linear-gradient(135deg, var(--yellow), var(--orange));
+  border-radius: 16px;
+  padding: 14px 18px 12px;
+  box-shadow: var(--shadow-soft), 0 10px 26px rgba(242, 183, 5, 0.28);
+}
+
+.countdown-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 65%);
+  pointer-events: none;
+}
+
+.countdown-label {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-size: 0.78rem;
+  color: #17181a;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.countdown-digits {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+}
+
+.countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(23, 24, 26, 0.18);
+  border-radius: 10px;
+  padding: 6px 10px 5px;
+  min-width: 50px;
+}
+
+.countdown-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #17181a;
+}
+
+.countdown-caption {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(23, 24, 26, 0.72);
+  margin-top: 2px;
+}
+
+.countdown-sep {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: #17181a;
+  opacity: 0.5;
+  position: relative;
+}
+
 .points-explainer {
   font-family: var(--font-body);
   font-size: 0.9rem;
