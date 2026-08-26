@@ -12,13 +12,11 @@ import { SidraCard } from "@/components/SidraCard";
 import { StealModal } from "@/components/StealModal";
 import { TotalCounter } from "@/components/TotalCounter";
 import { getActiveEvent, type WeeklyEvent } from "@/lib/events";
-import { formatMadridTime, madridWallClockToUtc } from "@/lib/madridTime";
+import { formatMadridTime } from "@/lib/madridTime";
+import { SIDRA_WEEKEND_START, SIDRA_WEEKEND_END } from "@/lib/sidraWeekend";
 import type { PersonWithTotal } from "@/lib/types";
 
 const POLL_INTERVAL_MS = 5000;
-
-const SIDRA_UNLOCK_START = madridWallClockToUtc(2026, 8, 28, 0, 0, 0);
-const SIDRA_UNLOCK_END = madridWallClockToUtc(2026, 8, 30, 23, 59, 59);
 
 function computePodium(entries: { name: string; liters: number }[]): PodiumEntry[] {
   const positive = entries.filter((e) => e.liters > 0);
@@ -88,7 +86,7 @@ export default function Home() {
     const check = () => {
       const now = Date.now();
       setSidraUnlocked(
-        now >= SIDRA_UNLOCK_START.getTime() && now <= SIDRA_UNLOCK_END.getTime()
+        now >= SIDRA_WEEKEND_START.getTime() && now <= SIDRA_WEEKEND_END.getTime()
       );
     };
     check();
@@ -137,6 +135,21 @@ export default function Home() {
 
   async function handleUndo(personId: string) {
     await fetch(`/api/people/${personId}/undo`, { method: "POST" });
+    await refresh();
+  }
+
+  async function handleVinoAdd(personId: string, liters: number, label?: string) {
+    const res = await fetch(`/api/people/${personId}/vino`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ liters, label }),
+    });
+    const freshPeople = await refresh();
+    await maybeOfferSteal(personId, res, freshPeople ?? people);
+  }
+
+  async function handleVinoUndo(personId: string) {
+    await fetch(`/api/people/${personId}/vino/undo`, { method: "POST" });
     await refresh();
   }
 
@@ -356,6 +369,9 @@ export default function Home() {
                 onDrink={handleDrink}
                 onUndo={handleUndo}
                 onDelete={handleDelete}
+                vinoActive={sidraUnlocked}
+                onVino={handleVinoAdd}
+                onVinoUndo={handleVinoUndo}
               />
             ))}
           </div>
@@ -459,6 +475,13 @@ export default function Home() {
             eventos temáticos esos puntos se multiplican. Se reinician cada
             mes. No afecta al total de litros.
           </p>
+
+          {sidraUnlocked && (
+            <p className="points-explainer">
+              🍷 Bonus del finde: las copas de vino (pestaña Cervezas) dan
+              puntos al doble. No cuentan como cerveza ni suman litros.
+            </p>
+          )}
 
           {activeEvent && (
             <div className="event-banner">

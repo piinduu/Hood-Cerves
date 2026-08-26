@@ -14,6 +14,8 @@ export const CUBATA_QUICK_SIZES = [
 
 export const SIDRA_QUICK_SIZES = [{ label: "Sidra", liters: 0.1 }];
 
+export const VINO_QUICK_SIZES = [{ label: "Copa de vino", liters: 0.15 }];
+
 export function resolveLabel(
   liters: number,
   providedLabel?: string | null,

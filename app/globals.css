@@ -1040,6 +1040,43 @@ header.app-header {
   filter: brightness(1.08);
 }
 
+.vino-row {
+  border: 1.5px dashed rgba(155, 44, 82, 0.5);
+  background: rgba(155, 44, 82, 0.08);
+  border-radius: 12px;
+  padding: 8px 10px 10px;
+  margin-bottom: 8px;
+}
+
+.vino-label {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #e8a3c0;
+  margin-bottom: 6px;
+}
+
+.vino-row .quick-buttons {
+  margin-bottom: 6px;
+}
+
+.quick-buttons button.vino-btn {
+  border-color: rgba(155, 44, 82, 0.55);
+}
+
+.quick-buttons button.vino-btn:hover {
+  background: linear-gradient(135deg, #9b2c52, var(--pink));
+  border-color: transparent;
+}
+
+.vino-undo {
+  color: #e8a3c0;
+  font-size: 0.78rem;
+}
+
 .card-actions {
   display: flex;
   gap: 10px;

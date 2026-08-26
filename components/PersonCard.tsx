@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BeerJar } from "./BeerJar";
 import { FlipCard } from "./FlipCard";
 import { HistoryChart, type HistorySeries } from "./HistoryChart";
-import { QUICK_SIZES } from "@/lib/quickSizes";
+import { QUICK_SIZES, VINO_QUICK_SIZES } from "@/lib/quickSizes";
 import { getCurrentBadge, getImparableLevel, toRomanNumeral } from "@/lib/badges";
 import type { PersonWithTotal } from "@/lib/types";
 
@@ -17,6 +17,9 @@ export function PersonCard({
   onDrink,
   onUndo,
   onDelete,
+  vinoActive,
+  onVino,
+  onVinoUndo,
 }: {
   person: PersonWithTotal;
   maxLiters: number;
@@ -26,6 +29,9 @@ export function PersonCard({
   onDrink: (personId: string, liters: number, label?: string) => Promise<void>;
   onUndo: (personId: string) => Promise<void>;
   onDelete: (personId: string) => Promise<void>;
+  vinoActive?: boolean;
+  onVino?: (personId: string, liters: number, label?: string) => Promise<void>;
+  onVinoUndo?: (personId: string) => Promise<void>;
 }) {
   const [customLiters, setCustomLiters] = useState("");
   const [busy, setBusy] = useState(false);
@@ -57,6 +63,26 @@ export function PersonCard({
     setBusy(true);
     try {
       await onUndo(person.id);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addVino(liters: number, label?: string) {
+    if (busy || !onVino) return;
+    setBusy(true);
+    try {
+      await onVino(person.id, liters, label);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleVinoUndo() {
+    if (busy || !person.lastVinoId || !onVinoUndo) return;
+    setBusy(true);
+    try {
+      await onVinoUndo(person.id);
     } finally {
       setBusy(false);
     }
@@ -140,6 +166,31 @@ export function PersonCard({
                 + L
               </button>
             </div>
+
+            {vinoActive && (
+              <div className="vino-row">
+                <span className="vino-label">🍷 Boost del finde · solo puntos x2</span>
+                <div className="quick-buttons">
+                  {VINO_QUICK_SIZES.map((size) => (
+                    <button
+                      key={size.label}
+                      className="vino-btn"
+                      disabled={busy}
+                      onClick={() => addVino(size.liters, size.label)}
+                    >
+                      {size.label} ({size.liters}L)
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="link-btn undo vino-undo"
+                  disabled={busy || !person.lastVinoId}
+                  onClick={handleVinoUndo}
+                >
+                  ↩ Deshacer último vino
+                </button>
+              </div>
+            )}
 
             <div className="card-actions">
               <button

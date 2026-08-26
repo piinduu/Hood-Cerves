@@ -1,5 +1,8 @@
 import { getPointsMultiplier, POINTS_PER_LITER } from "./events";
 
+/** El vino no cuenta como cerveza (no suma litros/ranking): solo da puntos, al doble. */
+export const VINO_POINTS_MULTIPLIER = 2;
+
 type LiquidEntry = { liters: number; createdAt: Date };
 
 export function computeRawPoints(entries: LiquidEntry[]): number {
