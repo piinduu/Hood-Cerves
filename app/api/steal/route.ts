@@ -46,12 +46,15 @@ export async function POST(req: NextRequest) {
     data: { fromPersonId, toPersonId, points: roundedPoints, success },
   });
 
-  await broadcastPush({
-    title: "Hood Cerves",
-    body: success
-      ? `¡${fromPerson.name} le acaba de robar ${roundedPoints} puntos a ${toPerson.name} sin que se entere!`
-      : `¡${fromPerson.name} ha intentado robarle a ${toPerson.name}, pero el plan le ha salido mal y pierde ${roundedPoints} puntos!`,
-  }).catch(() => null);
+  // Solo se notifica cuando el robo sale bien: si falla, el ladrón ya se
+  // entera al momento por la animación de la moneda, y no hace falta
+  // avisar a nadie más de un intento que no tuvo efecto.
+  if (success) {
+    await broadcastPush({
+      title: "Hood Cerves",
+      body: `¡${fromPerson.name} le acaba de robar ${roundedPoints} puntos a ${toPerson.name} sin que se entere!`,
+    }).catch(() => null);
+  }
 
   return NextResponse.json({ ok: true, success });
 }
