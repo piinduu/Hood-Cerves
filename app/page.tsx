@@ -9,11 +9,17 @@ import { PersonCard } from "@/components/PersonCard";
 import { PointsBoard } from "@/components/PointsBoard";
 import { Podium, type PodiumEntry } from "@/components/Podium";
 import { SidraCard } from "@/components/SidraCard";
-import { StealModal, type StealOutcome } from "@/components/StealModal";
+import { SidraCountdown } from "@/components/SidraCountdown";
+import { StealModal } from "@/components/StealModal";
 import { TotalCounter } from "@/components/TotalCounter";
 import { getActiveEvent, type WeeklyEvent } from "@/lib/events";
 import { formatMadridTime, madridWallClockToUtc } from "@/lib/madridTime";
+import { crossedMilestone, pickMilestoneMessage } from "@/lib/milestones";
+import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 import type { PersonWithTotal } from "@/lib/types";
+
+const BEER_MILESTONE_STEP_L = 1;
+const CUBATA_MILESTONE_STEP_L = 1.5;
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -51,11 +57,24 @@ export default function Home() {
   const [stealActive, setStealActive] = useState(false);
   const [stealEndsAt, setStealEndsAt] = useState<Date | null>(null);
   const [clockTick, setClockTick] = useState(() => Date.now());
-  const [stealResult, setStealResult] = useState<{
-    success: boolean;
-    points: number;
-    targetName: string;
-  } | null>(null);
+  const [milestoneQueue, setMilestoneQueue] = useState<
+    { id: string; message: string }[]
+  >([]);
+
+  function queueMilestone(
+    type: "beer" | "cubata",
+    before: number,
+    after: number,
+    step: number
+  ) {
+    const milestone = crossedMilestone(before, after, step);
+    if (milestone === null) return;
+    const message = pickMilestoneMessage(type, milestone);
+    setMilestoneQueue((q) => [
+      ...q,
+      { id: `${Date.now()}-${Math.random()}`, message },
+    ]);
+  }
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/people", { cache: "no-store" });
@@ -84,18 +103,9 @@ export default function Home() {
     });
   }
 
-  async function handleStealDone(outcome: StealOutcome | null) {
+  async function handleStealDone() {
     setStealPrompt(null);
-    const freshPeople = await refresh();
-    if (!outcome) return;
-
-    const target = (freshPeople ?? people).find((p) => p.id === outcome.toPersonId);
-    setStealResult({
-      success: outcome.success,
-      points: outcome.points,
-      targetName: target?.name ?? "alguien",
-    });
-    setTimeout(() => setStealResult(null), 4000);
+    await refresh();
   }
 
   useEffect(() => {
@@ -112,7 +122,7 @@ export default function Home() {
       );
     };
     check();
-    const interval = setInterval(check, 60000);
+    const interval = setInterval(check, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -152,12 +162,16 @@ export default function Home() {
   }
 
   async function handleDrink(personId: string, liters: number, label?: string) {
+    const before = people.find((p) => p.id === personId)?.monthLiters ?? 0;
     const res = await fetch(`/api/people/${personId}/drink`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ liters, label }),
     });
     const freshPeople = await refresh();
+    const after =
+      (freshPeople ?? people).find((p) => p.id === personId)?.monthLiters ?? before;
+    queueMilestone("beer", before, after, BEER_MILESTONE_STEP_L);
     await maybeOfferSteal(personId, res, freshPeople ?? people);
   }
 
@@ -167,12 +181,17 @@ export default function Home() {
   }
 
   async function handleCubataAdd(personId: string, liters: number, label?: string) {
+    const before = people.find((p) => p.id === personId)?.monthCubataLiters ?? 0;
     const res = await fetch(`/api/people/${personId}/cubata`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ liters, label }),
     });
     const freshPeople = await refresh();
+    const after =
+      (freshPeople ?? people).find((p) => p.id === personId)?.monthCubataLiters ??
+      before;
+    queueMilestone("cubata", before, after, CUBATA_MILESTONE_STEP_L);
     await maybeOfferSteal(personId, res, freshPeople ?? people);
   }
 
@@ -292,6 +311,13 @@ export default function Home() {
   return (
     <main className={stealActive ? "steal-mode" : ""}>
       {stealActive && <div className="steal-vignette" />}
+      {milestoneQueue[0] && (
+        <MilestoneCelebration
+          key={milestoneQueue[0].id}
+          message={milestoneQueue[0].message}
+          onDone={() => setMilestoneQueue((q) => q.slice(1))}
+        />
+      )}
       <header className="app-header">
         <div className="logo-circle">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -339,28 +365,6 @@ export default function Home() {
             <p className="steal-banner-title">¡Hora de robos activa!</p>
             <p className="steal-banner-detail">
               Quedan {stealTimeLeft} — cuidado con tus puntos.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {stealResult && (
-        <div
-          className={`steal-result-banner ${
-            stealResult.success ? "steal-result-success" : "steal-result-fail"
-          }`}
-        >
-          <span className="steal-banner-emoji">
-            {stealResult.success ? "🎉" : "💀"}
-          </span>
-          <div>
-            <p className="steal-banner-title">
-              {stealResult.success ? "¡Robo conseguido!" : "¡El robo salió mal!"}
-            </p>
-            <p className="steal-banner-detail">
-              {stealResult.success
-                ? `Le quitas ${stealResult.points} pts a ${stealResult.targetName}.`
-                : `Pierdes ${stealResult.points} pts por intentarlo.`}
             </p>
           </div>
         </div>
@@ -458,6 +462,7 @@ export default function Home() {
           <span className="locked-emoji">🔒🍏</span>
           <p className="locked-title">Sección bloqueada</p>
           <p>Disponible del 28 al 30 de agosto. ¡Vuelve por aquí esos días!</p>
+          <SidraCountdown target={SIDRA_UNLOCK_START} />
         </div>
       )}
 
