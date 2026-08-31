@@ -14,6 +14,19 @@ const STEAL_EVENT_CHANCE = 0.35;
 const STEAL_DURATIONS_MIN = [10, 15, 20, 30];
 
 async function maybeScheduleStealEvent() {
+  // Si este cron se dispara dos veces el mismo día (reintento de Vercel,
+  // doble ping externo...), que no se programen dos horas de robos
+  // independientes: si ya se creó una hoy, no se vuelve a sortear.
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+  const alreadyScheduledToday = await prisma.stealEvent.findFirst({
+    where: { createdAt: { gte: todayStart, lt: tomorrowStart } },
+  });
+  if (alreadyScheduledToday) {
+    return { scheduled: false };
+  }
+
   if (Math.random() >= STEAL_EVENT_CHANCE) {
     return { scheduled: false };
   }
