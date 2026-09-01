@@ -82,5 +82,6 @@ model PointSteal {
   fromPersonId String
   toPersonId   String
   points       Int
+  success      Boolean  @default(true)
   createdAt    DateTime @default(now())
 }

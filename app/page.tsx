@@ -56,6 +56,7 @@ export default function Home() {
   } | null>(null);
   const [stealActive, setStealActive] = useState(false);
   const [stealEndsAt, setStealEndsAt] = useState<Date | null>(null);
+  const [clockTick, setClockTick] = useState(() => Date.now());
   const [milestoneQueue, setMilestoneQueue] = useState<
     { id: string; message: string }[]
   >([]);
@@ -102,6 +103,11 @@ export default function Home() {
     });
   }
 
+  async function handleStealDone() {
+    setStealPrompt(null);
+    await refresh();
+  }
+
   useEffect(() => {
     refresh();
     const interval = setInterval(refresh, POLL_INTERVAL_MS);
@@ -139,6 +145,12 @@ export default function Home() {
     const interval = setInterval(check, 8000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!stealActive) return;
+    const interval = setInterval(() => setClockTick(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [stealActive]);
 
   async function handleAdd(name: string) {
     await fetch("/api/people", {
@@ -289,9 +301,12 @@ export default function Home() {
       ),
     }));
 
-  const stealMinutesLeft = stealEndsAt
-    ? Math.max(1, Math.ceil((stealEndsAt.getTime() - Date.now()) / 60000))
+  const stealSecondsLeft = stealEndsAt
+    ? Math.max(0, Math.round((stealEndsAt.getTime() - clockTick) / 1000))
     : 0;
+  const stealTimeLeft = `${Math.floor(stealSecondsLeft / 60)
+    .toString()
+    .padStart(2, "0")}:${(stealSecondsLeft % 60).toString().padStart(2, "0")}`;
 
   return (
     <main className={stealActive ? "steal-mode" : ""}>
@@ -349,7 +364,7 @@ export default function Home() {
           <div>
             <p className="steal-banner-title">¡Hora de robos activa!</p>
             <p className="steal-banner-detail">
-              Quedan {stealMinutesLeft} min — cuidado con tus puntos.
+              Quedan {stealTimeLeft} — cuidado con tus puntos.
             </p>
           </div>
         </div>
@@ -530,10 +545,7 @@ export default function Home() {
           fromPersonName={stealPrompt.fromPersonName}
           points={stealPrompt.points}
           people={people}
-          onDone={() => {
-            setStealPrompt(null);
-            refresh();
-          }}
+          onDone={handleStealDone}
         />
       )}
     </main>
