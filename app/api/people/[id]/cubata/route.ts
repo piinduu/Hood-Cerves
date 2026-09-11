@@ -5,6 +5,7 @@ import { CUBATA_QUICK_SIZES, resolveLabel } from "@/lib/quickSizes";
 import { badgeEmojiSuffix, getBadgesCrossed } from "@/lib/badges";
 import { getDailyMilestonesCrossed } from "@/lib/dailyMilestones";
 import { getMadridDateParts } from "@/lib/madridTime";
+import { pointsForSingleEntry } from "@/lib/points";
 
 export const dynamic = "force-dynamic";
 
@@ -87,5 +88,8 @@ export async function POST(
     }
   }
 
-  return NextResponse.json(cubata, { status: 201 });
+  return NextResponse.json(
+    { ...cubata, pointsEarned: pointsForSingleEntry(liters, cubata.createdAt) },
+    { status: 201 }
+  );
 }

@@ -5,6 +5,7 @@ import { resolveLabel } from "@/lib/quickSizes";
 import { badgeEmojiSuffix, getBadgesCrossed } from "@/lib/badges";
 import { getDailyMilestonesCrossed } from "@/lib/dailyMilestones";
 import { getMadridDateParts } from "@/lib/madridTime";
+import { pointsForSingleEntry } from "@/lib/points";
 
 export const dynamic = "force-dynamic";
 
@@ -87,5 +88,8 @@ export async function POST(
     }
   }
 
-  return NextResponse.json(drink, { status: 201 });
+  return NextResponse.json(
+    { ...drink, pointsEarned: pointsForSingleEntry(liters, drink.createdAt) },
+    { status: 201 }
+  );
 }

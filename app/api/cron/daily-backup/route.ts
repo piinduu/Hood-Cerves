@@ -1,9 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getMadridDateParts, madridWallClockToUtc } from "@/lib/madridTime";
 
 export const dynamic = "force-dynamic";
 
 const KEEP_DAYS = 30;
+
+// Probabilidad de que cualquier día dado tenga "hora de robos", y las
+// duraciones posibles (en minutos) entre las que se elige al azar si toca.
+const STEAL_EVENT_CHANCE = 0.35;
+const STEAL_DURATIONS_MIN = [20, 60, 120, 240];
+
+async function maybeScheduleStealEvent() {
+  if (Math.random() >= STEAL_EVENT_CHANCE) {
+    return { scheduled: false };
+  }
+
+  const now = getMadridDateParts(new Date());
+  const startHour = 12 + Math.floor(Math.random() * 11); // entre las 12:00 y las 22:00
+  const startMinute = Math.floor(Math.random() * 60);
+  const durationMin =
+    STEAL_DURATIONS_MIN[Math.floor(Math.random() * STEAL_DURATIONS_MIN.length)];
+
+  const start = madridWallClockToUtc(
+    now.year,
+    now.month + 1,
+    now.day,
+    startHour,
+    startMinute,
+    0
+  );
+  const end = new Date(start.getTime() + durationMin * 60000);
+
+  await prisma.stealEvent.create({ data: { start, end } });
+
+  return { scheduled: true, start, end, durationMin };
+}
 
 function isAuthorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -59,5 +91,7 @@ export async function GET(req: NextRequest) {
   cutoff.setDate(cutoff.getDate() - KEEP_DAYS);
   await prisma.backup.deleteMany({ where: { createdAt: { lt: cutoff } } });
 
-  return NextResponse.json({ ok: true, peopleBackedUp: people.length });
+  const stealEvent = await maybeScheduleStealEvent();
+
+  return NextResponse.json({ ok: true, peopleBackedUp: people.length, stealEvent });
 }

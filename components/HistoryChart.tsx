@@ -114,22 +114,39 @@ export function HistoryChart({ data }: { data: HistorySeries | null }) {
             <circle cx={xFor(peakCurrent.day)} cy={yFor(peakCurrent.liters)} r="3.5" fill="#f2b705" />
             {(() => {
               const peakX = xFor(peakCurrent.day);
+              const peakY = yFor(peakCurrent.liters);
+              const labelText = `${peakCurrent.liters.toFixed(2)}L (día ${peakCurrent.day})`;
               const nearLeftEdge = peakX < marginLeft + 55;
               const anchor = nearLeftEdge ? "start" : "end";
               const labelX = nearLeftEdge
                 ? Math.max(peakX, marginLeft)
                 : Math.min(peakX, width - marginRight - 4);
+              const labelY = Math.max(peakY - 14, marginTop + 9);
+              const approxWidth = labelText.length * 5.5;
+              const rectX = anchor === "start" ? labelX - 4 : labelX - approxWidth - 4;
+
               return (
-                <text
-                  x={labelX}
-                  y={Math.max(yFor(peakCurrent.liters) - 8, marginTop + 8)}
-                  fontSize="11"
-                  fontWeight="700"
-                  fill="#f2b705"
-                  textAnchor={anchor}
-                >
-                  {peakCurrent.liters.toFixed(2)}L (día {peakCurrent.day})
-                </text>
+                <>
+                  <rect
+                    x={rectX}
+                    y={labelY - 11}
+                    width={approxWidth + 8}
+                    height={15}
+                    rx={4}
+                    fill="#0f1011"
+                    opacity="0.85"
+                  />
+                  <text
+                    x={labelX}
+                    y={labelY}
+                    fontSize="11"
+                    fontWeight="700"
+                    fill="#f2b705"
+                    textAnchor={anchor}
+                  >
+                    {labelText}
+                  </text>
+                </>
               );
             })()}
           </>

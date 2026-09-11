@@ -13,9 +13,9 @@ export function PointsBoard({
         <div key={person.id} className="points-row">
           <span className="points-rank">#{rank}</span>
           <span className="points-name">{person.name}</span>
-          <span className="points-month">{person.monthPoints.toFixed(2)} pts</span>
+          <span className="points-month">{person.monthPoints} pts</span>
           <span className="points-total" title="Puntuación total histórica">
-            Total {person.totalPoints.toFixed(2)} pts
+            Total {person.totalPoints} pts
           </span>
         </div>
       ))}

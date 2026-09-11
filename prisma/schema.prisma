@@ -68,3 +68,19 @@ model Backup {
   data      String
   createdAt DateTime @default(now())
 }
+
+model StealEvent {
+  id        String   @id @default(cuid())
+  start     DateTime
+  end       DateTime
+  announced Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model PointSteal {
+  id           String   @id @default(cuid())
+  fromPersonId String
+  toPersonId   String
+  points       Int
+  createdAt    DateTime @default(now())
+}

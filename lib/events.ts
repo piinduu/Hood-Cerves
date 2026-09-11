@@ -1,5 +1,10 @@
 import { madridWallClockToUtc } from "./madridTime";
 
+// Tasa base de puntuación: 100 mL bebidos = 1 punto (ej. un tercio de 0.33L
+// = 3.3 pts, una litrona de 1L = 10 pts). Los eventos de abajo multiplican
+// esta base durante su ventana de tiempo.
+export const POINTS_PER_LITER = 10;
+
 export type WeeklyEvent = {
   id: string;
   label: string;
