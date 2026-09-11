@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMadridDateParts } from "@/lib/madridTime";
-import { computeRawPoints, litersToPoints } from "@/lib/points";
+import { computeRawPoints, litersToPoints, netStolenPoints } from "@/lib/points";
 import type { PersonWithTotal } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -29,13 +29,7 @@ export async function GET() {
     const relevant = steals.filter((s) =>
       monthOnly ? isSameMonth(s.createdAt) : true
     );
-    const stolenIn = relevant
-      .filter((s) => s.toPersonId === personId)
-      .reduce((sum, s) => sum + s.points, 0);
-    const stolenOut = relevant
-      .filter((s) => s.fromPersonId === personId)
-      .reduce((sum, s) => sum + s.points, 0);
-    return stolenIn - stolenOut;
+    return netStolenPoints(relevant, personId);
   }
 
   const result: PersonWithTotal[] = people.map((p) => {

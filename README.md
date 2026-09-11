@@ -70,14 +70,23 @@ solo funcionan si la web está añadida a la pantalla de inicio (paso 5) — en
 una pestaña normal de Safari no llegan. En Android/Chrome funcionan también
 sin instalarla.
 
-Para activarlo, añade estas variables de entorno en tu proyecto de Vercel
-(**Settings → Environment Variables**, para Production y Preview):
+Para activarlo, genera un par de claves propio (no reutilices ninguna que
+haya aparecido antes en este README o en el historial de git — considérala
+comprometida):
 
 ```
-VAPID_PUBLIC_KEY=BNfygOHC4VMYrG1SItW7nFiA57y0Qpa78ItnVL7e9elfTLjpV-zMCY8YZphcAjoQ7hkStS1GtmsWz5nw-8Fa1YQ
-VAPID_PRIVATE_KEY=9-HxBJ-_YN994PVNAkhoNITd__H7vbrhJL09MoFBmOg
+npx web-push generate-vapid-keys
+```
+
+Y añade estas variables de entorno en tu proyecto de Vercel (**Settings →
+Environment Variables**, para Production y Preview) — ver `.env.example`
+para la lista completa:
+
+```
+VAPID_PUBLIC_KEY=<la clave pública que te ha dado el comando de arriba>
+VAPID_PRIVATE_KEY=<la clave privada que te ha dado el comando de arriba>
 VAPID_SUBJECT=mailto:tu-email@ejemplo.com
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=BNfygOHC4VMYrG1SItW7nFiA57y0Qpa78ItnVL7e9elfTLjpV-zMCY8YZphcAjoQ7hkStS1GtmsWz5nw-8Fa1YQ
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=<la misma clave pública, repetida aquí>
 ```
 
 (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` debe tener el mismo valor que
@@ -94,10 +103,12 @@ mes anterior y quién ha sido "el borracho del mes" (si no hay empate en el
 primer puesto).
 
 Añade esta variable de entorno en Vercel (**Settings → Environment
-Variables**, Production y Preview):
+Variables**, Production y Preview) — genera un valor aleatorio propio (por
+ejemplo `openssl rand -base64 32`), no reutilices ninguno que haya aparecido
+antes en este README o en el historial de git:
 
 ```
-CRON_SECRET=cYeGwRL_Dp-ruum3CMtpUfVOMu8AYuRHDUqAMGXav0E
+CRON_SECRET=<tu valor aleatorio>
 ```
 
 Esto protege la ruta para que solo Vercel (o tú, con el secreto) pueda
@@ -108,7 +119,7 @@ ya programa la tarea, Vercel la detecta sola al desplegar.
 (con la web ya desplegada y con al menos una bebida apuntada este mes):
 
 ```
-https://TU-URL-DE-VERCEL.vercel.app/api/cron/monthly-report?secret=cYeGwRL_Dp-ruum3CMtpUfVOMu8AYuRHDUqAMGXav0E
+https://TU-URL-DE-VERCEL.vercel.app/api/cron/monthly-report?secret=TU_CRON_SECRET
 ```
 
 Si todo va bien, verás un JSON con `"sent": true` y a quien tenga las
@@ -127,7 +138,7 @@ borra también todo su historial), puedes recuperarlo así:
    la persona:
 
    ```
-   https://TU-URL-DE-VERCEL.vercel.app/api/admin/restore-person?name=NOMBRE&secret=cYeGwRL_Dp-ruum3CMtpUfVOMu8AYuRHDUqAMGXav0E
+   https://TU-URL-DE-VERCEL.vercel.app/api/admin/restore-person?name=NOMBRE&secret=TU_CRON_SECRET
    ```
 
 2. Si todo va bien, verás un JSON con `"ok": true` y el número de cervezas y
@@ -153,18 +164,19 @@ que no se la vuelve a pedir salvo que borre las cookies, use otro
 dispositivo, o cambies la contraseña.
 
 Añade estas dos variables de entorno en Vercel (**Settings → Environment
-Variables**, Production y Preview):
+Variables**, Production y Preview) — no reutilices ningún valor que haya
+aparecido antes en este README o en el historial de git, considéralos
+comprometidos:
 
 ```
-SITE_PASSWORD=la-contraseña-que-elijas-para-el-grupo
-SITE_AUTH_TOKEN=Vyyb1Uko2jlTDaPlnTfJUmbyoU7tilBH7KQJkzC_pIQ
+SITE_PASSWORD=<la contraseña que elijas para el grupo>
+SITE_AUTH_TOKEN=<un valor aleatorio propio, por ejemplo con: openssl rand -base64 32>
 ```
 
 `SITE_PASSWORD` es la que escribirá la gente (elige la que quieras, no hace
 falta que sea complicada ya que solo la vais a usar vosotros).
 `SITE_AUTH_TOKEN` es un valor interno que no escribe nadie, solo se usa para
-la cookie de sesión — puedes dejar el de arriba o generar otro tuyo, da
-igual, mientras no lo compartas.
+la cookie de sesión — genera uno propio, nunca lo compartas.
 
 Si en algún momento quieres que todo el grupo tenga que volver a meter la
 contraseña (por ejemplo, si se ha filtrado a alguien que no debería tenerla),
