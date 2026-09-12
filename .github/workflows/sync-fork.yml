@@ -1,0 +1,40 @@
+name: Sincronizar fork con el repo principal
+
+# Este fork es del que tira el despliegue de Vercel. El repo principal
+# (fergaroz/Hood-Cerves) es donde se aprueban los cambios por PR, así que
+# cada vez que algo se fusiona ahí, este workflow lo trae automáticamente
+# a la rama main de este fork para que Vercel despliegue solo, sin tener
+# que sincronizar el fork a mano cada vez.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar main de este fork
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Traer el repo principal como remoto
+        run: git remote add upstream https://github.com/fergaroz/Hood-Cerves.git
+
+      - name: Descargar los últimos cambios del repo principal
+        run: git fetch upstream main
+
+      - name: Fusionar los cambios nuevos en main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git merge upstream/main --no-edit -m "Sincroniza con fergaroz/Hood-Cerves main"
+
+      - name: Publicar en el fork (si hubo cambios nuevos)
+        run: git push origin main
