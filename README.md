@@ -154,7 +154,47 @@ tenido su copia de seguridad.
 Esta ruta usa la misma variable `CRON_SECRET` que ya tienes configurada
 (ver punto 7).
 
-## 9. Contraseña de acceso compartida
+## 9. Hora de robos: aviso en tiempo real con cron-job.org
+
+La "hora de robos" se programa sola cada día (dentro de la copia de
+seguridad del punto 8, con un 35% de probabilidad, en franjas horarias de
+tarde/noche) y se guarda en la base de datos con su hora de inicio y fin.
+Pero avisar por push de que "empieza la hora de robos" justo cuando toca
+necesita que algo compruebe cada pocos minutos si ya ha llegado esa hora —
+y eso **no puede ser el cron de Vercel**, porque en el plan gratuito de
+Vercel los cron jobs solo se pueden ejecutar como mucho una vez al día (por
+eso `vercel.json` no incluye esta ruta).
+
+La solución es un servicio externo gratuito, [cron-job.org](https://cron-job.org),
+que sí permite ejecuciones cada 1-2 minutos:
+
+1. Crea una cuenta gratuita en <https://cron-job.org> y confirma tu email.
+2. Pulsa **"Create cronjob"**.
+3. En **Title**, pon algo como `Hood Cerves - aviso hora de robos`.
+4. En **Address (URL)**, pon (cambiando la URL y el secreto por los tuyos):
+
+   ```
+   https://TU-URL-DE-VERCEL.vercel.app/api/cron/steal-notify?secret=TU_CRON_SECRET
+   ```
+
+   Es la misma variable `CRON_SECRET` que ya tienes configurada (ver punto 7).
+5. En **Execution schedule**, elige "User-defined" y pon que se ejecute
+   cada 1-2 minutos (el mínimo que te deje el plan gratuito; con cada 2
+   minutos es más que suficiente para que el aviso llegue "de sorpresa").
+6. Método: `GET` (el que viene por defecto). No hace falta tocar nada en la
+   pestaña "Advanced" ni añadir cabeceras — el secreto va en la propia URL.
+7. Guarda el cronjob.
+
+**Para comprobar que está bien configurado**, en el propio cron-job.org
+pulsa el botón de "Test run" (o espera a la siguiente ejecución programada)
+y mira la respuesta: debería devolver un JSON como
+`{"active":false,"notified":false}` si ahora mismo no hay hora de robos
+activa, o `{"active":true,"notified":true}` la primera vez que se detecta
+una activa (y `"notified":false` en las siguientes llamadas mientras siga
+activa, para no duplicar el push). Si en vez de eso ves un error 401, el
+`secret` de la URL no coincide con el `CRON_SECRET` de Vercel.
+
+## 10. Contraseña de acceso compartida
 
 Toda la web (excepto la propia pantalla de login y las rutas de cron/admin,
 que ya tienen su propio secreto) queda protegida por una contraseña
