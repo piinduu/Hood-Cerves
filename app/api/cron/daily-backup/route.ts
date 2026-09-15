@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
       drinks: { orderBy: { createdAt: "asc" } },
       cubatas: { orderBy: { createdAt: "asc" } },
       sidras: { orderBy: { createdAt: "asc" } },
+      pajas: { orderBy: { createdAt: "asc" } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -102,6 +103,7 @@ export async function GET(req: NextRequest) {
         label: s.label,
         createdAt: s.createdAt,
       })),
+      pajas: p.pajas.map((j) => ({ createdAt: j.createdAt })),
     })),
   };
 

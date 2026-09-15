@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcastPush } from "@/lib/push";
+import { pajaPoints } from "@/lib/pajas";
 import { computeRawPoints, litersToPoints } from "@/lib/points";
 import { getMadridDateParts } from "@/lib/madridTime";
 
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
   const end = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthName = MONTH_NAMES[start.getMonth()];
 
-  const [drinks, cubatas, sidras, steals] = await Promise.all([
+  const [drinks, cubatas, sidras, pajas, steals] = await Promise.all([
     prisma.drink.findMany({
       where: { createdAt: { gte: start, lt: end } },
       include: { person: true },
@@ -69,6 +70,10 @@ export async function GET(req: NextRequest) {
       where: { createdAt: { gte: start, lt: end } },
       include: { person: true },
     }),
+    prisma.paja.findMany({
+      where: { createdAt: { gte: start, lt: end } },
+      include: { person: true },
+    }),
     prisma.pointSteal.findMany({
       where: { createdAt: { gte: start, lt: end } },
     }),
@@ -76,18 +81,27 @@ export async function GET(req: NextRequest) {
 
   const allEntries = [...drinks, ...cubatas, ...sidras];
 
-  if (allEntries.length === 0) {
+  if (allEntries.length === 0 && pajas.length === 0) {
     return NextResponse.json({ ok: true, sent: false, reason: "Sin bebidas ese mes" });
   }
 
   const byPerson = new Map<
     string,
-    { name: string; entries: { liters: number; createdAt: Date }[] }
+    { name: string; entries: { liters: number; createdAt: Date }[]; pajas: number }
   >();
   for (const e of allEntries) {
-    const entry = byPerson.get(e.personId) ?? { name: e.person.name, entries: [] };
+    const entry = byPerson.get(e.personId) ?? { name: e.person.name, entries: [], pajas: 0 };
     entry.entries.push({ liters: e.liters, createdAt: e.createdAt });
     byPerson.set(e.personId, entry);
+  }
+  for (const paja of pajas) {
+    const entry = byPerson.get(paja.personId) ?? {
+      name: paja.person.name,
+      entries: [],
+      pajas: 0,
+    };
+    entry.pajas += 1;
+    byPerson.set(paja.personId, entry);
   }
 
   const ranking = Array.from(byPerson.entries()).map(([personId, data]) => {
@@ -97,7 +111,11 @@ export async function GET(req: NextRequest) {
     const stolenOut = steals
       .filter((s) => s.fromPersonId === personId)
       .reduce((sum, s) => sum + s.points, 0);
-    const points = litersToPoints(computeRawPoints(data.entries)) + stolenIn - stolenOut;
+    const points =
+      litersToPoints(computeRawPoints(data.entries)) +
+      pajaPoints(data.pajas) +
+      stolenIn -
+      stolenOut;
     return { name: data.name, points };
   });
   ranking.sort((a, b) => b.points - a.points);
