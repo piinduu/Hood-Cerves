@@ -39,11 +39,6 @@ export async function GET(
       where: { personId },
       select: { liters: true, createdAt: true },
     });
-  } else if (type === "sidra") {
-    entries = await prisma.sidra.findMany({
-      where: { personId },
-      select: { liters: true, createdAt: true },
-    });
   } else {
     entries = await prisma.drink.findMany({
       where: { personId },
