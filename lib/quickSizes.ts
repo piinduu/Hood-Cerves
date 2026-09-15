@@ -12,8 +12,6 @@ export const CUBATA_QUICK_SIZES = [
   { label: "Tubo", liters: 0.3 },
 ];
 
-export const SIDRA_QUICK_SIZES = [{ label: "Sidra", liters: 0.1 }];
-
 export function resolveLabel(
   liters: number,
   providedLabel?: string | null,

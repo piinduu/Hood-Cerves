@@ -50,10 +50,6 @@ export async function GET() {
         .reduce((sum, c) => sum + c.liters, 0),
       lastCubataId: p.cubatas[0]?.id ?? null,
       totalSidraLiters: p.sidras.reduce((sum, s) => sum + s.liters, 0),
-      monthSidraLiters: p.sidras
-        .filter((s) => isSameMonth(s.createdAt))
-        .reduce((sum, s) => sum + s.liters, 0),
-      lastSidraId: p.sidras[0]?.id ?? null,
       totalPoints: litersToPoints(computeRawPoints(allDrinkLike)) + stolenNet(p.id, false),
       monthPoints:
         litersToPoints(computeRawPoints(monthDrinkLike)) + stolenNet(p.id, true),
