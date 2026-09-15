@@ -5,6 +5,7 @@ import { AddPersonForm } from "@/components/AddPersonForm";
 import { AnimateButton } from "@/components/AnimateButton";
 import { CopaCard } from "@/components/CopaCard";
 import { NotificationButton } from "@/components/NotificationButton";
+import { PajaCard } from "@/components/PajaCard";
 import { PersonCard } from "@/components/PersonCard";
 import { PointsBoard } from "@/components/PointsBoard";
 import { Podium, type PodiumEntry } from "@/components/Podium";
@@ -12,6 +13,7 @@ import { StealModal } from "@/components/StealModal";
 import { TotalCounter } from "@/components/TotalCounter";
 import { getActiveEvent, type WeeklyEvent } from "@/lib/events";
 import { formatMadridTime } from "@/lib/madridTime";
+import { PAJA_POINTS, isPajaWeekOpen } from "@/lib/pajas";
 import { crossedMilestone, pickMilestoneMessage } from "@/lib/milestones";
 import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 import type { PersonWithTotal } from "@/lib/types";
@@ -41,7 +43,8 @@ function computePodium(entries: { name: string; liters: number }[]): PodiumEntry
 export default function Home() {
   const [people, setPeople] = useState<PersonWithTotal[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState<"cerveza" | "copas" | "puntos">("cerveza");
+  const [tab, setTab] = useState<"cerveza" | "copas" | "pajas" | "puntos">("cerveza");
+  const [pajaWeekOpen, setPajaWeekOpen] = useState(() => isPajaWeekOpen(new Date()));
   const [activeEvent, setActiveEvent] = useState<WeeklyEvent | null>(null);
   const [stealPrompt, setStealPrompt] = useState<{
     fromPersonId: string;
@@ -107,6 +110,12 @@ export default function Home() {
     const interval = setInterval(refresh, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [refresh]);
+
+  useEffect(() => {
+    const check = () => setPajaWeekOpen(isPajaWeekOpen(new Date()));
+    const interval = setInterval(check, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const check = () => setActiveEvent(getActiveEvent(new Date()));
@@ -182,6 +191,17 @@ export default function Home() {
     await refresh();
   }
 
+  async function handlePajaAdd(personId: string) {
+    const res = await fetch(`/api/people/${personId}/paja`, { method: "POST" });
+    const freshPeople = await refresh();
+    await maybeOfferSteal(personId, res, freshPeople ?? people);
+  }
+
+  async function handlePajaUndo(personId: string) {
+    await fetch(`/api/people/${personId}/paja/undo`, { method: "POST" });
+    await refresh();
+  }
+
   async function handleDelete(personId: string) {
     await fetch(`/api/people/${personId}`, { method: "DELETE" });
     await refresh();
@@ -202,6 +222,13 @@ export default function Home() {
   );
 
   const normalize = (n: number) => Math.round(n * 100);
+
+  const totalWeekPajas = people.reduce((sum, p) => sum + p.weekPajas, 0);
+  const maxPajas = people.reduce((max, p) => Math.max(max, p.weekPajas), 0);
+  const minPajas = people.length > 0 ? Math.min(...people.map((p) => p.weekPajas)) : 0;
+  const hasSinglePajaLeader =
+    maxPajas > 0 && people.filter((p) => p.weekPajas === maxPajas).length === 1;
+  const hasMinPajaSpread = people.length > 0 && minPajas < maxPajas;
 
   const maxNormalized = normalize(maxLiters);
   const leadersCount = people.filter(
@@ -234,6 +261,9 @@ export default function Home() {
   const beerPodium = computePodium(people.map((p) => ({ name: p.name, liters: p.monthLiters })));
   const cubataPodium = computePodium(
     people.map((p) => ({ name: p.name, liters: p.monthCubataLiters }))
+  );
+  const pajaPodium = computePodium(
+    people.map((p) => ({ name: p.name, liters: p.weekPajas }))
   );
   const pointsPodium = computePodium(
     people.map((p) => ({ name: p.name, liters: p.monthPoints }))
@@ -291,6 +321,12 @@ export default function Home() {
           onClick={() => setTab("copas")}
         >
           Copas
+        </button>
+        <button
+          className={`tab-btn ${tab === "pajas" ? "active" : ""}`}
+          onClick={() => setTab("pajas")}
+        >
+          🍆 Pajas {!pajaWeekOpen && "🔒"}
         </button>
         <button
           className={`tab-btn ${tab === "puntos" ? "active" : ""}`}
@@ -399,13 +435,68 @@ export default function Home() {
         </>
       )}
 
+      {tab === "pajas" && !pajaWeekOpen && (
+        <div className="locked-panel">
+          <span className="locked-emoji">🔒🍆</span>
+          <p className="locked-title">Sección bloqueada</p>
+          <p>La semana de las pajas fue del 14 al 20 de septiembre.</p>
+        </div>
+      )}
+
+      {tab === "pajas" && pajaWeekOpen && (
+        <>
+          <div className="event-banner">
+            <span className="event-emoji">🍆</span>
+            <div>
+              <p className="event-title">Semana de las pajas</p>
+              <p className="event-detail">
+                Cada una suma {PAJA_POINTS} pts en Puntos · hasta el domingo 20
+              </p>
+            </div>
+          </div>
+
+          <TotalCounter
+            totalLiters={totalWeekPajas}
+            label="Total del grupo"
+            unit={totalWeekPajas === 1 ? "paja" : "pajas"}
+            decimals={0}
+          />
+
+          <Podium entries={pajaPodium} unit=" 🍆" decimals={0} />
+
+          {loaded && people.length === 0 && (
+            <p className="empty-state">Nadie apuntado todavía. ¡Añade a alguien!</p>
+          )}
+
+          <div className="people-grid">
+            {people.map((person) => (
+              <PajaCard
+                key={person.id}
+                person={person}
+                maxPajas={maxPajas}
+                isLeader={hasSinglePajaLeader && person.weekPajas === maxPajas}
+                isLast={hasMinPajaSpread && person.weekPajas === minPajas}
+                rank={rankOf(
+                  person.weekPajas,
+                  people.map((p) => p.weekPajas)
+                )}
+                onAdd={handlePajaAdd}
+                onUndo={handlePajaUndo}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       {tab === "puntos" && (
         <>
           <p className="points-explainer">
             Puntuación aparte de los litros reales: cada 100 mL bebidos
             (cerveza o cubata) son 1 punto, redondeado siempre hacia
             abajo (un tercio, 3 pts; una litrona, 10 pts), y durante los
-            eventos temáticos esos puntos se multiplican. Se reinician cada
+            eventos temáticos esos puntos se multiplican. Durante la semana
+            de las pajas, cada una suma {PAJA_POINTS} pts. Se reinician cada
             mes. No afecta al total de litros.
           </p>
 

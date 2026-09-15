@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMadridDateParts } from "@/lib/madridTime";
+import { isPajaWeekOpen, pajaPoints } from "@/lib/pajas";
 import { computeRawPoints, litersToPoints, netStolenPoints } from "@/lib/points";
 import type { PersonWithTotal } from "@/lib/types";
 
@@ -13,6 +14,7 @@ export async function GET() {
         drinks: { orderBy: { createdAt: "desc" } },
         cubatas: { orderBy: { createdAt: "desc" } },
         sidras: { orderBy: { createdAt: "desc" } },
+        pajas: { orderBy: { createdAt: "desc" } },
       },
       orderBy: { createdAt: "asc" },
     }),
@@ -35,6 +37,7 @@ export async function GET() {
   const result: PersonWithTotal[] = people.map((p) => {
     const allDrinkLike = [...p.drinks, ...p.cubatas, ...p.sidras];
     const monthDrinkLike = allDrinkLike.filter((e) => isSameMonth(e.createdAt));
+    const monthPajas = p.pajas.filter((e) => isSameMonth(e.createdAt)).length;
 
     return {
       id: p.id,
@@ -50,9 +53,16 @@ export async function GET() {
         .reduce((sum, c) => sum + c.liters, 0),
       lastCubataId: p.cubatas[0]?.id ?? null,
       totalSidraLiters: p.sidras.reduce((sum, s) => sum + s.liters, 0),
-      totalPoints: litersToPoints(computeRawPoints(allDrinkLike)) + stolenNet(p.id, false),
+      weekPajas: p.pajas.filter((e) => isPajaWeekOpen(e.createdAt)).length,
+      lastPajaId: p.pajas[0]?.id ?? null,
+      totalPoints:
+        litersToPoints(computeRawPoints(allDrinkLike)) +
+        pajaPoints(p.pajas.length) +
+        stolenNet(p.id, false),
       monthPoints:
-        litersToPoints(computeRawPoints(monthDrinkLike)) + stolenNet(p.id, true),
+        litersToPoints(computeRawPoints(monthDrinkLike)) +
+        pajaPoints(monthPajas) +
+        stolenNet(p.id, true),
     };
   });
 

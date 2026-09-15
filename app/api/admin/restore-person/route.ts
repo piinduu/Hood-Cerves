@@ -21,6 +21,7 @@ type BackupSnapshot = {
     drinks: { liters: number; label: string | null; createdAt: string }[];
     cubatas: { liters: number; label: string | null; createdAt: string }[];
     sidras?: { liters: number; label: string | null; createdAt: string }[];
+    pajas?: { createdAt: string }[];
   }[];
 };
 
@@ -106,6 +107,14 @@ export async function GET(req: NextRequest) {
     )
   );
 
+  const createdPajas = await Promise.all(
+    (found.pajas ?? []).map((j) =>
+      prisma.paja.create({
+        data: { personId: person!.id, createdAt: new Date(j.createdAt) },
+      })
+    )
+  );
+
   return NextResponse.json({
     ok: true,
     restoredFrom: snapshot.takenAt,
@@ -113,5 +122,6 @@ export async function GET(req: NextRequest) {
     drinksCreated: createdDrinks.length,
     cubatasCreated: createdCubatas.length,
     sidrasCreated: createdSidras.length,
+    pajasCreated: createdPajas.length,
   });
 }
